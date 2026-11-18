@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiteGauge: tools that measure websites</title>
+<meta name="description" content="Three tools that measure websites in bulk: a technical SEO audit, a broken link checker and a technology detector. They return rows you can filter, with the evidence for every finding.">
+<meta property="og:title" content="SiteGauge: tools that measure websites">
+<meta property="og:description" content="A technical SEO audit, a broken link checker and a technology detector. Rows you can filter, with the evidence for every finding.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23FFC400'/%3E%3Cpath d='M6 8h20M6 16h12M6 24h20' stroke='%2314213D' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root {
+  --mist: #EDF1F5;
+  --sheet: #FFFFFF;
+  --ink: #14213D;
+  --steel: #55647A;
+  --tape: #FFC400;
+  --rule: #C9D2DD;
+  --bad: #B3261E;
+  --good: #1B6E46;
+  --text: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --data: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --tape-w: 34px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  position: relative;
+  min-height: 100vh;
+  background: var(--mist);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+/* The tape: a ruler laid down the left edge that measures the page itself. */
+.tape {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--tape-w);
+  background:
+    linear-gradient(to bottom, var(--ink) 0 1px, transparent 1px) right top / 22px 100px repeat-y,
+    linear-gradient(to bottom, var(--ink) 0 1px, transparent 1px) right top / 13px 50px repeat-y,
+    linear-gradient(to bottom, var(--ink) 0 1px, transparent 1px) right top / 7px 10px repeat-y,
+    var(--tape);
+  overflow: hidden;
+}
+.tape span {
+  position: absolute;
+  left: 3px;
+  font: 600 9px/1 var(--data);
+  color: var(--ink);
+  transform: translateY(3px);
+}
+main, footer { margin-left: var(--tape-w); }
+.wrap { max-width: 68rem; margin: 0 auto; padding: 0 2rem; }
+a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+a:focus-visible, .run:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+header.top { padding: 1.5rem 0 0; }
+.name { font: 700 1.05rem/1 var(--data); letter-spacing: -0.01em; }
+
+.hero { padding: 4.5rem 0 4rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 3.5rem; align-items: end; }
+h1 { font-size: clamp(2.3rem, 5vw, 3.6rem); line-height: 1.06; letter-spacing: -0.02em; margin: 0 0 1.5rem; font-weight: 700; }
+.hero p { margin: 0 0 1.25rem; max-width: 34rem; color: var(--steel); }
+.hero p strong { color: var(--ink); font-weight: 600; }
+
+.reading { background: var(--sheet); border: 1px solid var(--ink); font: 0.8rem/1.5 var(--data); }
+.reading header { display: flex; justify-content: space-between; gap: 1rem; padding: 0.7rem 1rem; background: var(--ink); color: var(--mist); }
+.reading table { width: 100%; border-collapse: collapse; }
+.reading td { padding: 0.55rem 1rem; vertical-align: top; border-top: 1px solid var(--rule); }
+.reading td:first-child { font-weight: 700; white-space: nowrap; }
+.reading td:last-child { color: var(--steel); }
+.reading .more td { color: var(--steel); font-weight: 400; }
+.reading footer { margin: 0; padding: 0.7rem 1rem; border-top: 1px solid var(--ink); color: var(--steel); }
+
+h2 { font-size: 1.7rem; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 1.75rem; }
+section { padding: 3.5rem 0; border-top: 1px solid var(--rule); }
+
+.tool { display: grid; grid-template-columns: 13rem minmax(0, 1fr) auto; gap: 2.5rem; padding: 1.75rem 0; align-items: start; }
+.tool + .tool { border-top: 1px solid var(--rule); }
+.figure { font: 700 2.5rem/1 var(--data); letter-spacing: -0.04em; }
+.figure small { display: block; margin-top: 0.5rem; font: 400 0.85rem/1.35 var(--text); letter-spacing: 0; color: var(--steel); }
+.tool h3 { margin: 0 0 0.4rem; font-size: 1.25rem; line-height: 1.25; }
+.tool p { margin: 0 0 0.6rem; max-width: 36rem; }
+.tool .sample { font: 0.8rem/1.5 var(--data); color: var(--steel); }
+.sample .bad { color: var(--bad); } .sample .good { color: var(--good); }
+.run { display: inline-block; background: var(--tape); color: var(--ink); border: 1px solid var(--ink); padding: 0.6rem 1rem; font: 700 0.85rem/1.2 var(--data); text-decoration: none; white-space: nowrap; }
+.run:hover { background: var(--ink); color: var(--tape); }
+.price { display: block; margin-top: 0.6rem; font: 0.78rem/1.3 var(--data); color: var(--steel); text-align: right; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3.5rem; }
+pre { margin: 0; padding: 1.1rem 1.25rem; background: var(--ink); color: var(--mist); font: 0.8rem/1.6 var(--data); white-space: pre-wrap; overflow-wrap: anywhere; }
+ul.plain { margin: 0; padding: 0; list-style: none; }
+ul.plain li { padding: 0.7rem 0; border-top: 1px solid var(--rule); max-width: 36rem; }
+ul.plain li:first-child { border-top: 0; padding-top: 0; }
+
+.ledger { border-collapse: collapse; font: 0.9rem/1.4 var(--data); width: 100%; max-width: 26rem; }
+.ledger td { padding: 0.5rem 0; border-top: 1px solid var(--rule); }
+.ledger td:last-child { text-align: right; font-weight: 700; }
+.ledger caption { caption-side: bottom; text-align: left; padding-top: 0.6rem; font: 0.8rem/1.4 var(--text); color: var(--steel); }
+
+footer.end { padding: 2.5rem 0 4rem; border-top: 1px solid var(--ink); font-size: 0.9rem; color: var(--steel); }
+footer.end p { margin: 0 0 0.5rem; max-width: 44rem; }
+
+@media (max-width: 860px) {
+  :root { --tape-w: 14px; }
+  .tape span { display: none; }
+  .wrap { padding: 0 1.1rem; }
+  .hero { grid-template-columns: 1fr; gap: 2rem; padding: 3rem 0; }
+  .tool { grid-template-columns: 1fr; gap: 0.9rem; }
+  .price { text-align: left; }
+  .two { grid-template-columns: 1fr; gap: 2.5rem; }
+  .reading tr:not(.more) td:last-child { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="tape" aria-hidden="true"></div>
+
+<main>
+<div class="wrap">
+
+<header class="top"><span class="name">SiteGauge</span></header>
+
+<div class="hero">
+  <div>
+    <h1>Three tools that measure websites and hand you the rows.</h1>
+    <p>Audit every URL of a site, check every link, or find out what a thousand websites are built with. Each tool returns <strong>plain rows you can filter</strong>, with the evidence behind every finding.</p>
+    <p>They run on Apify, so there is nothing to install. You pay per result and a free account is enough to try them.</p>
+  </div>
+  <div class="reading" role="img" aria-label="A real result from the technology detector for wordpress.org: 12 technologies found, including WordPress 7.2, PHP and nginx, each with the evidence it was recognised by.">
+    <header><span>wordpress.org</span><span>analyzed, 12 technologies</span></header>
+    <table>
+      <tr><td>WordPress 7.2</td><td>CMS</td><td>meta generator: WordPress 7.2<br>loads: /wp-content/</td></tr>
+      <tr><td>PHP</td><td>Programming language</td><td>implied by WordPress</td></tr>
+      <tr><td>nginx</td><td>Web server</td><td>header server: nginx</td></tr>
+      <tr class="more"><td colspan="3">and 9 more, each with its evidence</td></tr>
+    </table>
+    <footer>A real row from a run on 18 November 2026.</footer>
+  </div>
+</div>
+
+<section id="tools">
+  <h2>The tools</h2>
+
+  <div class="tool">
+    <div class="figure">497<small>technologies recognised from the page, plus email and DNS providers from DNS records</small></div>
+    <div>
+      <h3>Website Technology Detector</h3>
+      <p>Paste a list of domains. Get one row per website: CMS, ecommerce platform, frameworks, analytics, marketing tools, hosting, and the email and DNS providers behind the domain.</p>
+      <p class="sample">apify.com: Next.js, React, HubSpot, Intercom, OneTrust, Amazon CloudFront, Google Workspace</p>
+    </div>
+    <div><a class="run" href="https://apify.com/sitegauge/website-technology-detector">Run it on Apify</a><span class="price">$2 per 1,000 websites</span></div>
+  </div>
+
+  <div class="tool">
+    <div class="figure">57<small>technical and on-page checks on every URL</small></div>
+    <div>
+      <h3>Technical SEO Audit and Site Crawler</h3>
+      <p>Give it a homepage. It follows internal links and sitemaps, scores every page from 0 to 100, and writes an HTML report with each issue, example URLs and a plain-English fix.</p>
+      <p class="sample">crawlee.dev, 25 URLs: score 88, <span class="bad">4 errors</span>, 44 warnings, 13 notices</p>
+    </div>
+    <div><a class="run" href="https://apify.com/sitegauge/seo-audit-crawler">Run it on Apify</a><span class="price">$5 per 1,000 URLs</span></div>
+  </div>
+
+  <div class="tool">
+    <div class="figure">4<small>results, never a guess: broken, uncertain, redirect or ok</small></div>
+    <div>
+      <h3>Broken Link Checker</h3>
+      <p>Checks every link, image, script and stylesheet on a site and tells you which pages contain the broken ones. Links that only refuse automated requests are listed to check by hand, not counted as broken.</p>
+      <p class="sample">crawlee.dev, 99 links on 29 pages: <span class="good">0 broken</span>, 2 redirects, 2 to check by hand</p>
+    </div>
+    <div><a class="run" href="https://apify.com/sitegauge/broken-link-checker">Run it on Apify</a><span class="price">$1 per 1,000 links</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="two">
+    <div>
+      <h2>Run one from code</h2>
+      <p>Every tool is one HTTP call. This asks what three websites are built with and returns the rows as JSON.</p>
+      <pre><code>curl -s -X POST \
+ "https://api.apify.com/v2/acts/sitegauge~website-technology-detector/run-sync-get-dataset-items" \
+ -H "Authorization: Bearer $APIFY_TOKEN" \
+ -H "Content-Type: application/json" \
+ -d '{"websites": ["apify.com", "crawlee.dev", "wordpress.org"]}'</code></pre>
+    </div>
+    <div>
+      <h2>What these tools will not do</h2>
+      <ul class="plain">
+        <li>Try to get around a block or a login. Robots.txt is respected by default.</li>
+        <li>Collect names, email addresses or other personal data.</li>
+        <li>Guess. Every finding comes with the signal it was recognised by.</li>
+        <li>Charge for a website the technology detector could not read.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="two">
+    <div>
+      <h2>Who runs this</h2>
+      <p>An AI does. In November 2026 a software researcher gave an AI model, Claude, a budget of $100 and one instruction: build an online business and make a profit.</p>
+      <p>The AI chose the products, wrote the code, the tests and this page, and sets the prices. A human owns the accounts and approves everything that is published or spent.</p>
+      <p>The numbers are published as they are.</p>
+    </div>
+    <div>
+      <h2>The ledger</h2>
+      <table class="ledger">
+        <caption>As of 18 November 2026, day 2 of 60.</caption>
+        <tr><td>Starting budget</td><td>$100.00</td></tr>
+        <tr><td>Cash spent</td><td>$0.00</td></tr>
+        <tr><td>Revenue</td><td>$0.00</td></tr>
+        <tr><td>Paying customers</td><td>0</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer class="end">
+<div class="wrap">
+  <p>Found a wrong result or a missing check? Open an issue on the tool's Issues tab on Apify. Wrong results are fixed first.</p>
+  <p>SiteGauge is an independent publisher on Apify Store. It is not affiliated with or endorsed by Apify or by any of the technologies its tools detect.</p>
+</div>
+</footer>
+
+<script>
+// Number the tape every 100 pixels, down the full height of the page.
+(function () {
+  var tape = document.querySelector('.tape');
+  function label() {
+    tape.textContent = '';
+    for (var y = 100; y < document.body.scrollHeight; y += 100) {
+      var s = document.createElement('span');
+      s.style.top = y + 'px';
+      s.textContent = y;
+      tape.appendChild(s);
+    }
+  }
+  label();
+  window.addEventListener('resize', label);
+})();
+</script>
+</body>
+</html>
